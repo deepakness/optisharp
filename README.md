@@ -4,10 +4,9 @@
 ![Node Version](https://img.shields.io/badge/node-%3E%3D18.17.0-brightgreen.svg)
 
 <p align="center">
-  <video width="600" controls>
-    <source src="assets/optisharp.mp4" type="video/mp4">
-    Your browser does not support the video tag.
-  </video>
+  <img src="assets/optisharp.gif" alt="OptiSharp Demo" width="800">
+  <br>
+  <a href="assets/optisharp.mp4">View original video in full quality</a>
 </p>
 
 A high-performance Node.js utility for batch processing images using the [Sharp](https://sharp.pixelplumbing.com/) library. This tool is perfect for optimizing images for web usage, reducing storage requirements, or preparing media for various platforms.
