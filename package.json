@@ -1,0 +1,33 @@
+{
+  "name": "optisharp",
+  "version": "1.0.0",
+  "description": "A script to resize, optimize, and convert images using Sharp",
+  "main": "image-processor.js",
+  "scripts": {
+    "start": "node image-processor.js"
+  },
+  "keywords": [
+    "image",
+    "resize",
+    "optimize",
+    "convert",
+    "sharp",
+    "image-processing"
+  ],
+  "author": "Deepak Kumar",
+  "license": "MIT",
+  "dependencies": {
+    "sharp": "^0.33.5"
+  },
+  "engines": {
+    "node": ">=18.17.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/deepakness/optisharp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/deepakness/optisharp/issues"
+  },
+  "homepage": "https://github.com/deepakness/optisharp#readme"
+} 
