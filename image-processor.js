@@ -32,6 +32,28 @@ const OPTIMIZATIONS = {
   removeMetadata: true // Remove EXIF and other metadata to reduce file size
 };
 
+// Watermark options
+const WATERMARK = {
+  enabled: false,               // Enable/disable watermarking
+  type: 'text',                // 'image' or 'text'
+  
+  // Image watermark options (used when type is 'image')
+  imagePath: './assets/watermark.png', // Path to watermark image
+  
+  // Text watermark options (used when type is 'text')
+  text: 'Copyright © 2025',     // Text to use as watermark
+  font: 'Arial',                // Font family
+  fontSize: 20,                 // Font size
+  fontColor: '#ffffff',         // Font color
+  
+  // Common watermark options
+  position: 'bottomRight',      // Position: topLeft, topRight, bottomLeft, bottomRight, center
+  opacity: 0.6,                 // Opacity (0-1)
+  margin: 20,                   // Margin from edges in pixels
+  size: 0.2,                    // Size ratio (percent of main image width) - for image watermarks only
+  angle: 0                      // Rotation angle in degrees - for text watermarks only
+};
+
 // =======================================================
 // DO NOT MODIFY BELOW THIS LINE UNLESS YOU KNOW WHAT YOU'RE DOING
 // =======================================================
@@ -43,6 +65,23 @@ const OUTPUT_DIR = path.join(__dirname, 'output');
 // Ensure output directory exists
 if (!fs.existsSync(OUTPUT_DIR)) {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+}
+
+// Helper function to convert position to Sharp's gravity
+function positionToGravity(position) {
+  const gravityMap = {
+    'topLeft': 'northwest',
+    'top': 'north',
+    'topRight': 'northeast',
+    'left': 'west',
+    'center': 'center',
+    'right': 'east',
+    'bottomLeft': 'southwest',
+    'bottom': 'south',
+    'bottomRight': 'southeast'
+  };
+  
+  return gravityMap[position] || 'southeast'; // Default to southeast if position is invalid
 }
 
 // Get all files from input directory
@@ -58,7 +97,8 @@ async function processImages() {
     successCount: 0,
     errorCount: 0,
     skippedCount: 0,
-    formatCounts: {}
+    formatCounts: {},
+    watermarked: 0
   };
   
   try {
@@ -141,6 +181,133 @@ async function processImages() {
           pipeline = pipeline.withMetadata(false);
         }
         
+        // Apply watermark if enabled
+        if (WATERMARK.enabled) {
+          // Get current dimensions for watermark sizing
+          const processedMetadata = await pipeline.clone().toBuffer({ resolveWithObject: true }).then(({ info }) => info);
+          
+          if (WATERMARK.type === 'image' && fs.existsSync(WATERMARK.imagePath)) {
+            // Image watermarking
+            stats.watermarked++;
+            
+            // Calculate watermark size based on main image width
+            const watermarkWidth = Math.round(processedMetadata.width * WATERMARK.size);
+            
+            // Prepare watermark image
+            const watermarkBuffer = await sharp(WATERMARK.imagePath)
+              .resize(watermarkWidth) // Resize watermark
+              .ensureAlpha() // Ensure alpha channel exists
+              .composite([{
+                // Apply opacity to the watermark
+                input: Buffer.from([255, 255, 255, Math.round(WATERMARK.opacity * 255)]),
+                raw: { width: 1, height: 1, channels: 4 },
+                tile: true,
+                blend: 'dest-in'
+              }])
+              .toBuffer();
+            
+            // Calculate position with margin
+            const gravity = positionToGravity(WATERMARK.position);
+            
+            // Determine top, bottom, left, right margins based on position
+            let top, bottom, left, right;
+            
+            if (WATERMARK.position.includes('top')) {
+              top = WATERMARK.margin;
+            } else if (WATERMARK.position.includes('bottom')) {
+              bottom = WATERMARK.margin;
+            }
+            
+            if (WATERMARK.position.includes('Left')) {
+              left = WATERMARK.margin;
+            } else if (WATERMARK.position.includes('Right')) {
+              right = WATERMARK.margin;
+            }
+            
+            // Apply watermark to main image
+            pipeline = pipeline.composite([{
+              input: watermarkBuffer,
+              gravity: gravity,
+              blend: 'over',
+              top: top,
+              bottom: bottom,
+              left: left,
+              right: right
+            }]);
+            
+            console.log(`  Applied image watermark (${WATERMARK.position}, ${Math.round(WATERMARK.opacity * 100)}% opacity)`);
+          } 
+          else if (WATERMARK.type === 'text' && WATERMARK.text) {
+            // Text watermarking
+            stats.watermarked++;
+            
+            // Determine text size based on image dimensions
+            const fontSize = WATERMARK.fontSize || Math.max(16, Math.round(processedMetadata.width * 0.02));
+            
+            // Get gravity for positioning
+            const gravity = positionToGravity(WATERMARK.position);
+            
+            // Create text SVG with proper positioning
+            // For text watermarks, we need to position the text in the SVG based on the gravity
+            let x, y, textAnchor, alignmentBaseline;
+            
+            // Set positioning for x
+            if (gravity.includes('west')) {
+              x = WATERMARK.margin;
+              textAnchor = 'start';
+            } else if (gravity.includes('east')) {
+              x = processedMetadata.width - WATERMARK.margin;
+              textAnchor = 'end';
+            } else {
+              x = processedMetadata.width / 2;
+              textAnchor = 'middle';
+            }
+            
+            // Set positioning for y
+            if (gravity.includes('north')) {
+              y = WATERMARK.margin + fontSize;
+              alignmentBaseline = 'hanging';
+            } else if (gravity.includes('south')) {
+              y = processedMetadata.height - WATERMARK.margin;
+              alignmentBaseline = 'alphabetic';
+            } else {
+              y = processedMetadata.height / 2;
+              alignmentBaseline = 'middle';
+            }
+            
+            // Create an SVG with the text positioned according to gravity
+            const svgText = Buffer.from(`
+              <svg width="${processedMetadata.width}" height="${processedMetadata.height}">
+                <style>
+                  .text {
+                    fill: ${WATERMARK.fontColor || 'white'};
+                    font-family: ${WATERMARK.font || 'Arial'};
+                    font-size: ${fontSize}px;
+                    font-weight: normal;
+                    opacity: ${WATERMARK.opacity};
+                  }
+                </style>
+                <text
+                  x="${x}"
+                  y="${y}"
+                  text-anchor="${textAnchor}"
+                  alignment-baseline="${alignmentBaseline}"
+                  transform="rotate(${WATERMARK.angle || 0}, ${x}, ${y})"
+                  class="text">${WATERMARK.text}</text>
+              </svg>
+            `);
+            
+            // Apply text watermark
+            pipeline = pipeline.composite([{
+              input: svgText,
+              gravity: 'northwest', // Use northwest as we're already positioning within the SVG
+              blend: 'over'
+            }]);
+            
+            console.log(`  Applied text watermark: "${WATERMARK.text}"`);
+          }
+        }
+        
         // Set output format and quality
         const formatOptions = {};
         
@@ -202,6 +369,9 @@ async function processImages() {
     console.log(`Successfully processed: ${stats.successCount} files`);
     console.log(`Errors: ${stats.errorCount} files`);
     console.log(`Skipped: ${stats.skippedCount} files`);
+    if (WATERMARK.enabled) {
+      console.log(`Watermarked: ${stats.watermarked} files`);
+    }
     console.log('--------------------------------------------------');
     
     // Print format breakdown if any files were processed
@@ -233,7 +403,7 @@ async function processImages() {
       console.log(`  Average time per image: ${(timeTaken / stats.totalProcessed).toFixed(2)} seconds`);
     }
     console.log('==================================================');
-    
+    console.log('✨ Image processing completed successfully! ✨');
   } catch (error) {
     console.error('An error occurred:', error.message);
   }
@@ -251,12 +421,10 @@ function formatBytes(bytes, decimals = 2) {
   
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
 }
 
-// Run the script
-processImages()
-  .then(() => {
-    console.log('✨ Image processing completed successfully! ✨');
-  })
-  .catch(err => console.error('Error:', err.message)); 
+// Start processing
+processImages().then(() => {
+  // Processing complete
+}); 

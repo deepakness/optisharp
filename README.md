@@ -22,6 +22,7 @@ A high-performance Node.js utility for batch processing images using the [Sharp]
 - **Image Enhancement**: Apply sharpening to improve clarity
 - **Comprehensive Reports**: Detailed summary statistics on processing results
 - **User-Friendly Output**: Clear logging and formatted statistics
+- **Optional Watermarking**: Add text or image watermarks with customizable options
 
 ## 📋 Requirements
 
@@ -40,6 +41,20 @@ A high-performance Node.js utility for batch processing images using the [Sharp]
    ```bash
    npm install
    ```
+
+## 💻 Basic Usage
+
+1. Place all your images in the `/input` folder
+2. Run the script:
+   ```bash
+   npm start
+   ```
+   or
+   ```bash
+   node image-processor.js
+   ```
+3. Processed images will be saved in the `/output` folder
+4. View the summary report for optimization statistics
 
 ## 📝 Configuration
 
@@ -102,21 +117,6 @@ const OPTIMIZATIONS = {
 | `fill`     | Ignores the aspect ratio and stretches to the provided dimensions |
 | `inside`   | Preserves aspect ratio and resizes to the maximum dimensions that fit within the provided dimensions |
 | `outside`  | Preserves aspect ratio and resizes to the minimum dimensions that cover the provided dimensions |
-
-## 💻 Usage
-
-1. Place all your images in the `/input` folder
-2. Adjust the configuration options as needed
-3. Run the script:
-   ```bash
-   npm start
-   ```
-   or
-   ```bash
-   node image-processor.js
-   ```
-4. Processed images will be saved in the `/output` folder
-5. View the summary report for optimization statistics
 
 ## 📈 Example Output
 
@@ -200,6 +200,100 @@ pipeline = pipeline.blur(3);
 
 // Example: Rotate an image
 pipeline = pipeline.rotate(90);
+```
+
+## 💦 Watermarking (Optional Feature)
+
+OptiSharp includes an optional watermarking feature that allows you to add either text or image watermarks to your processed images. This feature is **disabled by default** but can be enabled by modifying the configuration.
+
+### Watermark Configuration
+
+```javascript
+// Watermark options
+const WATERMARK = {
+  enabled: false,               // Enable/disable watermarking (disabled by default)
+  type: 'image',                // 'image' or 'text'
+  
+  // Image watermark options (used when type is 'image')
+  imagePath: './assets/watermark.png', // Path to watermark image
+  
+  // Text watermark options (used when type is 'text')
+  text: 'Copyright © 2024',     // Text to use as watermark
+  font: 'Arial',                // Font family
+  fontSize: 24,                 // Font size
+  fontColor: '#ffffff',         // Font color (accepts hex codes, color names, etc.)
+  
+  // Common watermark options
+  position: 'bottomRight',      // Position: topLeft, topRight, bottomLeft, bottomRight, center
+  opacity: 0.6,                 // Opacity (0-1)
+  margin: 20,                   // Margin from edges in pixels
+  size: 0.2,                    // Size ratio (percent of main image width) - for image watermarks only
+  angle: 0                      // Rotation angle in degrees - for text watermarks only
+};
+```
+
+### Using Image Watermarks
+
+To use an image watermark:
+
+1. Create or select an image to use as your watermark (PNG with transparency works best)
+2. Place the watermark image in the `/assets` directory (create this directory if it doesn't exist)
+3. Update the `WATERMARK.imagePath` to point to your watermark file
+4. Set `WATERMARK.enabled` to `true` and `WATERMARK.type` to `'image'`
+5. Adjust other options as needed:
+   - `size`: Controls how large the watermark is relative to the image (0.2 = 20% of image width)
+   - `opacity`: Controls transparency (0-1 where 1 is fully opaque)
+   - `position`: Controls where the watermark appears on the image
+   - `margin`: Controls how far from the edge the watermark appears
+
+### Using Text Watermarks
+
+To use a text watermark:
+
+1. Set `WATERMARK.enabled` to `true` and `WATERMARK.type` to `'text'`
+2. Configure the text options:
+   - `text`: The text to display (e.g., copyright notice, website URL, etc.)
+   - `font`: Font family to use (system fonts available)
+   - `fontSize`: Size of the text (or leave unset to auto-size based on image dimensions)
+   - `fontColor`: Color of the text (accepts hex codes like '#FF0000' for red)
+   - `angle`: Rotation angle in degrees (0-360)
+3. Adjust position, opacity, and margin as needed
+
+### Watermark Positioning Options
+
+| Position | Description |
+|----------|-------------|
+| `topLeft` | Places the watermark at the top-left corner |
+| `top` | Places the watermark at the top-center |
+| `topRight` | Places the watermark at the top-right corner |
+| `left` | Places the watermark at the middle-left |
+| `center` | Places the watermark at the center of the image |
+| `right` | Places the watermark at the middle-right |
+| `bottomLeft` | Places the watermark at the bottom-left corner |
+| `bottom` | Places the watermark at the bottom-center |
+| `bottomRight` | Places the watermark at the bottom-right corner |
+
+### Example with Watermarking
+
+When watermarking is enabled, the console output will show additional information:
+
+```
+Processing: sample.jpg
+  Original: 1920x1080, jpeg
+  Applied image watermark (bottomRight, 60% opacity)
+  Processed: 1200x675, jpeg
+  Size: 2.34 MB → 156.78 KB (93.45% reduction)
+  Done!
+```
+
+And the summary will include watermarking statistics:
+
+```
+Total files processed: 3 files
+Successfully processed: 3 files
+Errors: 0 files
+Skipped: 0 files
+Watermarked: 3 files
 ```
 
 ## 🛠️ Troubleshooting
