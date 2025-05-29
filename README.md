@@ -5,9 +5,9 @@
 
 A high-performance Node.js utility for batch processing images using the [Sharp](https://sharp.pixelplumbing.com/) library. This tool is perfect for optimizing images for web usage, reducing storage requirements, or preparing media for various platforms.
 
-## Demo
+## 🎥 Demo
 
-https://github.com/deepakness/optisharp/assets/optisharp.mp4
+https://github.com/user-attachments/assets/6c837d00-59bd-4ea4-96a7-88228351af24
 
 ## 🚀 Features
 
