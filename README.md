@@ -5,11 +5,9 @@
 
 A high-performance, EXIF-aware Node.js utility for batch processing images using the [Sharp](https://sharp.pixelplumbing.com/) library. It resizes, optimizes, and converts images (JPEG/PNG/WebP/AVIF/TIFF), handles transparency safely when converting to JPEG, and uses sensible fallbacks when the source format isn’t supported as an output.
 
-<p align="center">
-  <img src="assets/optisharp.gif" alt="OptiSharp Demo" width="800">
-  <br>
-  <a href="assets/optisharp.mp4">View original video in full quality</a>
-</p>
+## 🎥 Demo
+
+https://github.com/user-attachments/assets/6c837d00-59bd-4ea4-96a7-88228351af24
 
 ## 🚀 Features
 
