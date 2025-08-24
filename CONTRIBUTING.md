@@ -1,6 +1,6 @@
-# Contributing to OptiSharp
+# Contributing to optisharp
 
-Thank you for considering contributing to OptiSharp! This document outlines the process for contributing to this project.
+Thank you for considering contributing to optisharp! This document outlines the process for contributing to this project.
 
 ## Code of Conduct
 
@@ -53,7 +53,7 @@ Enhancement suggestions are tracked as [GitHub issues](https://guides.github.com
 * **Provide specific examples to demonstrate the steps** or point to similar features in other projects.
 * **Describe the current behavior** and **explain which behavior you expected to see instead** and why.
 * **Include screenshots or animated GIFs** which help you demonstrate the steps or point out what the suggestion is related to.
-* **Explain why this enhancement would be useful** to most OptiSharp users.
+* **Explain why this enhancement would be useful** to most optisharp users.
 * **Specify which version of Node.js and Sharp you're using.**
 * **Specify the name and version of the OS you're using.**
 
@@ -61,7 +61,7 @@ Enhancement suggestions are tracked as [GitHub issues](https://guides.github.com
 
 The process described here has several goals:
 
-- Maintain OptiSharp's quality
+- Maintain optisharp's quality
 - Fix problems that are important to users
 - Engage the community in working toward the best possible tool
 - Enable a sustainable system for the maintainers to review contributions

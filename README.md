@@ -207,7 +207,7 @@ pipeline = pipeline.rotate(90);
 
 ## 💦 Watermarking (Optional Feature)
 
-OptiSharp includes an optional watermarking feature that allows you to add either text or image watermarks to your processed images. This feature is **disabled by default** but can be enabled by modifying the configuration.
+optisharp includes an optional watermarking feature that allows you to add either text or image watermarks to your processed images. This feature is **disabled by default** but can be enabled by modifying the configuration.
 
 ### Watermark Configuration
 
