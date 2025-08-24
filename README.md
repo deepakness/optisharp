@@ -3,7 +3,7 @@
 ![License](https://img.shields.io/github/license/deepakness/optisharp)
 ![Node Version](https://img.shields.io/badge/node-%3E%3D18.17.0-brightgreen.svg)
 
-A high-performance Node.js utility for batch processing images using the [Sharp](https://sharp.pixelplumbing.com/) library. This tool is perfect for optimizing images for web usage, reducing storage requirements, or preparing media for various platforms.
+A high-performance, EXIF-aware Node.js utility for batch processing images using the [Sharp](https://sharp.pixelplumbing.com/) library. It resizes, optimizes, and converts images (JPEG/PNG/WebP/AVIF/TIFF), handles transparency safely when converting to JPEG, and uses sensible fallbacks when the source format isn’t supported as an output.
 
 <p align="center">
   <img src="assets/optisharp.gif" alt="OptiSharp Demo" width="800">
@@ -67,6 +67,8 @@ All configuration options are located at the top of the `image-processor.js` fil
 const OUTPUT_FORMAT = 'jpeg';
 ```
 
+If `OUTPUT_FORMAT` is set to `original` but the source format is not supported as an output (for example, GIF or SVG), the tool will choose a safe fallback: `png` when the image has transparency, otherwise `jpeg`.
+
 ### Quality Settings
 
 ```javascript
@@ -103,7 +105,7 @@ const OPTIMIZATIONS = {
 | JPEG   | ✅    | ✅     | Optimized with mozjpeg |
 | PNG    | ✅    | ✅     | High compression level |
 | WebP   | ✅    | ✅     | Excellent for web usage |
-| GIF    | ✅    | ✅     | |
+| GIF    | ✅    | ❌     | Input supported, output not supported by Sharp |
 | AVIF   | ✅    | ✅     | Next-gen format with excellent compression |
 | TIFF   | ✅    | ✅     | |
 | SVG    | ✅    | ❌     | Can be used as input only |
@@ -169,13 +171,16 @@ Time statistics:
 1. The script scans the `/input` directory for image files
 2. For each valid image:
    - Retrieves original metadata and dimensions
+   - Applies EXIF orientation automatically
    - Applies configured resizing (if enabled)
    - Applies sharpening (if enabled)
    - Removes metadata (if enabled)
    - Converts to the target format with quality settings
    - Applies format-specific optimizations
    - Saves to the `/output` directory
-3. Generates a comprehensive summary report
+ 3. Generates a comprehensive summary report
+
+Note: When converting images with transparency to JPEG, transparent regions are flattened to white to ensure predictable results.
 
 ## 🧩 Advanced Usage
 

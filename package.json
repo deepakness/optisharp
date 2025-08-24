@@ -1,7 +1,7 @@
 {
   "name": "optisharp",
-  "version": "1.0.0",
-  "description": "A script to resize, optimize, and convert images using Sharp",
+  "version": "1.1",
+  "description": "Batch image processor using Sharp: resize, optimize, convert with safe transparency handling and output fallbacks",
   "main": "image-processor.js",
   "scripts": {
     "start": "node image-processor.js"

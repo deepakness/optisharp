@@ -67,21 +67,22 @@ if (!fs.existsSync(OUTPUT_DIR)) {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 }
 
-// Helper function to convert position to Sharp's gravity
+// Helper function to convert position to Sharp's gravity (case-insensitive)
 function positionToGravity(position) {
+  const p = String(position || '').toLowerCase();
   const gravityMap = {
-    'topLeft': 'northwest',
-    'top': 'north',
-    'topRight': 'northeast',
-    'left': 'west',
-    'center': 'center',
-    'right': 'east',
-    'bottomLeft': 'southwest',
-    'bottom': 'south',
-    'bottomRight': 'southeast'
+    topleft: 'northwest',
+    top: 'north',
+    topright: 'northeast',
+    left: 'west',
+    center: 'center',
+    right: 'east',
+    bottomleft: 'southwest',
+    bottom: 'south',
+    bottomright: 'southeast'
   };
-  
-  return gravityMap[position] || 'southeast'; // Default to southeast if position is invalid
+
+  return gravityMap[p] || 'southeast'; // Default to southeast if position is invalid
 }
 
 // Get all files from input directory
@@ -137,30 +138,31 @@ async function processImages() {
         
         console.log(`Processing: ${file}`);
         
-        // Determine output format
-        let outputFormat = OUTPUT_FORMAT;
-        if (outputFormat === 'original') {
-          outputFormat = fileInfo.ext.replace('.', '');
-          // Normalize some extensions
-          if (outputFormat === 'jpg') outputFormat = 'jpeg';
-        }
-        
-        // Track format counts
-        if (!stats.formatCounts[outputFormat]) {
-          stats.formatCounts[outputFormat] = 0;
-        }
-        stats.formatCounts[outputFormat]++;
-        
-        // Determine output filename
-        const outputFileName = `${fileInfo.name}.${outputFormat}`;
-        const outputPath = path.join(OUTPUT_DIR, outputFileName);
-        
         // Start processing the image
         let pipeline = sharp(inputPath);
+
+        // Respect EXIF orientation
+        pipeline = pipeline.rotate();
         
         // Get image metadata
         const metadata = await pipeline.metadata();
         console.log(`  Original: ${metadata.width}x${metadata.height}, ${metadata.format}`);
+
+        // Determine output format (with safeguards for unsupported originals)
+        let outputFormat = OUTPUT_FORMAT;
+        if (outputFormat === 'original') {
+          outputFormat = fileInfo.ext.replace('.', '').toLowerCase();
+          if (outputFormat === 'jpg') outputFormat = 'jpeg';
+        }
+        const supportedOutputs = new Set(['jpeg', 'png', 'webp', 'avif', 'tiff']);
+        if (!supportedOutputs.has(outputFormat)) {
+          // Fallback: prefer PNG when alpha is present, otherwise JPEG
+          outputFormat = metadata.hasAlpha ? 'png' : 'jpeg';
+        }
+
+        // Determine output filename and path
+        const outputFileName = `${fileInfo.name}.${outputFormat}`;
+        const outputPath = path.join(OUTPUT_DIR, outputFileName);
         
         // Apply resizing if enabled
         if (RESIZE.enabled) {
@@ -177,8 +179,14 @@ async function processImages() {
           pipeline = pipeline.sharpen();
         }
         
-        if (OPTIMIZATIONS.removeMetadata) {
-          pipeline = pipeline.withMetadata(false);
+        // Metadata handling: default strips metadata; preserve only if explicitly requested
+        if (!OPTIMIZATIONS.removeMetadata) {
+          pipeline = pipeline.withMetadata();
+        }
+
+        // Flatten transparency when outputting JPEG
+        if (outputFormat === 'jpeg' && metadata.hasAlpha) {
+          pipeline = pipeline.flatten({ background: '#ffffff' });
         }
         
         // Apply watermark if enabled
@@ -212,15 +220,16 @@ async function processImages() {
             // Determine top, bottom, left, right margins based on position
             let top, bottom, left, right;
             
-            if (WATERMARK.position.includes('top')) {
+            const posLower = String(WATERMARK.position || '').toLowerCase();
+            if (posLower.includes('top')) {
               top = WATERMARK.margin;
-            } else if (WATERMARK.position.includes('bottom')) {
+            } else if (posLower.includes('bottom')) {
               bottom = WATERMARK.margin;
             }
             
-            if (WATERMARK.position.includes('Left')) {
+            if (posLower.includes('left')) {
               left = WATERMARK.margin;
-            } else if (WATERMARK.position.includes('Right')) {
+            } else if (posLower.includes('right')) {
               right = WATERMARK.margin;
             }
             
@@ -275,6 +284,14 @@ async function processImages() {
               alignmentBaseline = 'middle';
             }
             
+            // Escape text for safe SVG embedding
+            const escapeXml = (s) => String(s)
+              .replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')
+              .replace(/"/g, '&quot;')
+              .replace(/'/g, '&apos;');
+
             // Create an SVG with the text positioned according to gravity
             const svgText = Buffer.from(`
               <svg width="${processedMetadata.width}" height="${processedMetadata.height}">
@@ -293,7 +310,7 @@ async function processImages() {
                   text-anchor="${textAnchor}"
                   alignment-baseline="${alignmentBaseline}"
                   transform="rotate(${WATERMARK.angle || 0}, ${x}, ${y})"
-                  class="text">${WATERMARK.text}</text>
+                  class="text">${escapeXml(WATERMARK.text)}</text>
               </svg>
             `);
             
@@ -340,11 +357,15 @@ async function processImages() {
         const outputSize = fs.statSync(outputPath).size;
         const reduction = ((inputSize - outputSize) / inputSize * 100).toFixed(2);
         
-        // Update stats
+        // Update stats (only after success)
         stats.totalProcessed++;
         stats.successCount++;
         stats.totalInputSize += inputSize;
         stats.totalOutputSize += outputSize;
+        if (!stats.formatCounts[outputFormat]) {
+          stats.formatCounts[outputFormat] = 0;
+        }
+        stats.formatCounts[outputFormat]++;
         
         console.log(`  Size: ${formatBytes(inputSize)} → ${formatBytes(outputSize)} (${reduction}% reduction)`);
         console.log('  Done!');
